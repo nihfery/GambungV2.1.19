@@ -357,6 +357,19 @@ export const gamboengAbi =  [
 	},
 	{
 		"inputs": [],
+		"name": "getAllActors",
+		"outputs": [
+			{
+				"internalType": "address[]",
+				"name": "",
+				"type": "address[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
 		"name": "getAllLotIds",
 		"outputs": [
 			{
