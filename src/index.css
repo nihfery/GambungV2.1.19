@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+
+@layer components {
+  .card { @apply bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-card transition-transform; }
+  .card:hover { @apply -translate-y-[1px]; }
+  .card-body { @apply p-5; }
+
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 border border-gray-300 bg-white hover:bg-gray-50 dark:bg-gray-800 dark:border-gray-700 dark:hover:bg-gray-700; }
+  .btn-primary { @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 bg-blue-600 text-white hover:bg-blue-700; }
+  .btn[disabled], .btn-primary[disabled] { @apply opacity-60 cursor-not-allowed; }
+
+  .input, .select, .textarea { @apply w-full rounded-lg border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500; }
+
+  .table { @apply min-w-full text-sm; }
+  .table thead tr { @apply text-left border-b border-gray-200 dark:border-gray-700; }
+  .table tbody tr { @apply border-b border-gray-100 dark:border-gray-700; }
+  .table tbody tr:hover { @apply bg-gray-50/60 dark:bg-gray-800/60; }
+}
+
+body {
+  @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-gray-100;
+  font-feature-settings: "cv02","cv03","cv04","cv11";
+}
