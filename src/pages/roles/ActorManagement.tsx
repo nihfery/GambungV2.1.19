@@ -16,8 +16,6 @@ interface Actor {
 
 /* ================= CONSTANT ================= */
 
-const STORAGE_KEY = "gamboeng_actor_addresses";
-
 const STEPS = Object.values(Step).filter(
   (v) => typeof v === "number"
 ) as Step[];
@@ -41,24 +39,7 @@ export default function ActorManagement() {
   const [name, setName] = useState("");
   const [status, setStatus] = useState("");
 
-  /* ================= STORAGE ================= */
-
-  function getStoredActors(): Address[] {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    } catch {
-      return [];
-    }
-  }
-
-  function saveActor(addr: Address) {
-    const list = getStoredActors();
-    if (!list.includes(addr)) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify([...list, addr]));
-    }
-  }
-
-  /* ================= LOAD ACTORS ================= */
+  /* ================= LOAD ACTORS (ON-CHAIN) ================= */
 
   const loadActors = useCallback(async () => {
     if (!publicClient) return;
@@ -66,10 +47,17 @@ export default function ActorManagement() {
     setLoading(true);
 
     try {
-      const addresses = getStoredActors();
+      // 1️⃣ ambil SEMUA actor address dari blockchain
+      const addresses = (await publicClient.readContract({
+        address: GAMBOENG_ADDRESS,
+        abi: gamboengAbi,
+        functionName: "getAllActors",
+      })) as Address[];
+
       const result: Actor[] = [];
 
       for (const addr of addresses) {
+        // 2️⃣ ambil actor info
         const [name, status, active] =
           (await publicClient.readContract({
             address: GAMBOENG_ADDRESS,
@@ -80,6 +68,7 @@ export default function ActorManagement() {
 
         if (!name) continue;
 
+        // 3️⃣ ambil role
         const roles: Step[] = [];
 
         for (const step of STEPS) {
@@ -103,6 +92,8 @@ export default function ActorManagement() {
       }
 
       setActors(result);
+    } catch (err) {
+      console.error("Load actors error:", err);
     } finally {
       setLoading(false);
     }
@@ -131,7 +122,6 @@ export default function ActorManagement() {
 
     await publicClient.waitForTransactionReceipt({ hash });
 
-    saveActor(addr);
     setWallet("");
     setName("");
     setStatus("");
@@ -180,7 +170,9 @@ export default function ActorManagement() {
     loadActors();
   }
 
-  if (loading) return <p className="text-gray-400">Loading...</p>;
+  if (loading) {
+    return <p className="text-gray-400">Loading actors…</p>;
+  }
 
   /* ================= UI ================= */
 
@@ -202,21 +194,21 @@ export default function ActorManagement() {
 
         <div className="space-y-3">
           <input
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-green-600 outline-none"
+            className="w-full rounded-lg border px-3 py-2 text-sm"
             placeholder="Wallet Address (0x...)"
             value={wallet}
             onChange={(e) => setWallet(e.target.value)}
           />
 
           <input
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-green-600 outline-none"
+            className="w-full rounded-lg border px-3 py-2 text-sm"
             placeholder="Nama Actor"
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
 
           <input
-            className="w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:ring-green-600 outline-none"
+            className="w-full rounded-lg border px-3 py-2 text-sm"
             placeholder="Status (Pegawai Tetap / Kontrak / Mitra)"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
@@ -224,7 +216,7 @@ export default function ActorManagement() {
 
           <button
             onClick={addActor}
-            className="rounded-lg bg-gradient-to-br from-green-600 to-green-700 px-4 py-2 text-sm font-medium text-white hover:opacity-90 transition"
+            className="rounded-lg bg-green-600 px-4 py-2 text-sm text-white hover:bg-green-700"
           >
             Tambah Actor
           </button>
@@ -248,7 +240,7 @@ export default function ActorManagement() {
           <tbody>
             {actors.map((actor) => (
               <tr key={actor.address} className="border-t">
-                <td className="px-4 py-3 font-mono text-xs text-gray-600">
+                <td className="px-4 py-3 font-mono text-xs">
                   {shortAddress(actor.address)}
                 </td>
                 <td className="px-4 py-3 font-medium">{actor.name}</td>
@@ -259,7 +251,7 @@ export default function ActorManagement() {
                     {actor.roles.map((r) => (
                       <span
                         key={r}
-                        className="rounded-md bg-green-100 px-2 py-1 text-xs text-green-700"
+                        className="rounded bg-green-100 px-2 py-1 text-xs text-green-700"
                       >
                         {stepLabels[r]}
                       </span>
@@ -269,7 +261,7 @@ export default function ActorManagement() {
 
                 <td className="px-4 py-3">
                   <span
-                    className={`rounded-md px-2 py-1 text-xs ${
+                    className={`rounded px-2 py-1 text-xs ${
                       actor.active
                         ? "bg-green-100 text-green-700"
                         : "bg-red-100 text-red-700"
@@ -282,7 +274,7 @@ export default function ActorManagement() {
                 <td className="px-4 py-3 space-y-2">
                   <button
                     onClick={() => toggleActive(actor)}
-                    className="w-full rounded-lg border px-3 py-1.5 text-xs hover:bg-green-50 transition"
+                    className="w-full rounded border px-3 py-1.5 text-xs"
                   >
                     {actor.active ? "Nonaktifkan" : "Aktifkan"}
                   </button>
@@ -293,7 +285,7 @@ export default function ActorManagement() {
                         <button
                           key={step}
                           onClick={() => revokeRole(actor, step)}
-                          className="rounded-md bg-red-100 px-2 py-1 text-xs text-red-700 hover:bg-red-200 transition"
+                          className="rounded bg-red-100 px-2 py-1 text-xs text-red-700"
                         >
                           Revoke {stepLabels[step]}
                         </button>
@@ -302,7 +294,7 @@ export default function ActorManagement() {
                           key={step}
                           disabled={!actor.active}
                           onClick={() => grantRole(actor, step)}
-                          className="rounded-md bg-green-100 px-2 py-1 text-xs text-green-700 hover:bg-green-200 transition disabled:opacity-50"
+                          className="rounded bg-green-100 px-2 py-1 text-xs text-green-700 disabled:opacity-50"
                         >
                           Grant {stepLabels[step]}
                         </button>

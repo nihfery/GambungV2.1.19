@@ -34,6 +34,10 @@ contract GamboengTraceability is Ownable {
 
     mapping(address => Actor) public actors;
 
+    // ✅ ACTOR REGISTRY (NEW)
+    address[] private actorList;
+    mapping(address => bool) private actorExists;
+
     /* =============================================================
                                 ROLE
     ============================================================= */
@@ -121,9 +125,21 @@ contract GamboengTraceability is Ownable {
         string calldata status,
         bool active
     ) external onlyOwner {
+
+        // ✅ SIMPAN ACTOR SEKALI SAJA
+        if (!actorExists[account]) {
+            actorExists[account] = true;
+            actorList.push(account);
+        }
+
         actors[account] = Actor(name, status, active);
+
         emit ActorRegistered(account, name, status);
         emit ActorStatusChanged(account, active);
+    }
+
+    function getAllActors() external view returns (address[] memory) {
+        return actorList;
     }
 
     /* =============================================================
@@ -322,6 +338,7 @@ contract GamboengTraceability is Ownable {
         emit TransferAccepted(transferId, newLotId);
     }
 
+    // ✅ FIX: CANCEL HANYA RECEIVER / OWNER
     function cancelTransfer(string calldata transferId) external {
         Transfer storage T = transfers[transferId];
 
